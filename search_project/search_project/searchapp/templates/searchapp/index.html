@@ -1,0 +1,150 @@
+{% load static %}
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Page</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'searchapp/styles.css' %}">
+    </head>
+
+<body onload="restoreScrollPosition()">
+    <section id="search_page">
+     <div class="logo-container">
+        <h1 onclick="clearForm()" class="logo">ARO Intelligent</h1>
+
+    <!-- Search form -->
+    <div class="search-container">
+        <form id="searchForm" method="get" onsubmit="return prepareForSearch()">
+            <div class="form-group">
+                <label for="searchInput">Keyword: </label>
+                <input id='searchInput' type="text" name="q" placeholder="Search keywords..." value="{{ request.GET.q }}">
+            </div>
+            <div class="form-group">
+                <label for="sort">Order by:</label>
+                <select name="sort">
+                    <option value="" disabled selected hidden>Sort by...</option>
+                    <option value="corpus_date">Date</option>
+                    <option value="frequency">Frequency</option>
+                    <option value="similarity">Similarity</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="sort">Methods:</label>
+                <select id='queryType' name="query_type">
+                    <option value="" disabled selected hidden>Please choose search method</option>
+                    <option value="animal">Animals</option>
+                    <option value="personname">Person Name</option>
+                    <option value="spousal">Spousal</option>
+                </select>
+            </div>
+            <div class="submit-button">
+                <button type="submit" class="btn primary">Search</button>
+                <button type="button" class="btn" onclick="clearForm()">Clear</button>
+                </div>
+        </form>
+    </div>
+
+    {% if page_obj %}
+        <div class="scroll-down-container">
+            <button onclick="scrollToResults()" class="scroll-down">Scroll Down</button>
+        </div>
+        {% endif %}
+          <div id="dot-nav">
+            <ul>
+                <li><a href="#search_page" class="active"></a></li>
+                <li><a href="#results_page"></a></li>
+            </ul>
+        </div>
+
+     </div>
+    </section>
+
+    <section id="results_page">
+        <div class="results_container" >
+            {% if page_obj %}
+                <div class="results-info"> Total Results: {{ page_obj.paginator.count }}</div>
+                <div class="export-to-excel">
+                <!-- Wrap this form around the "Results per page" input and the "Update" button -->
+                <form method="get" action="">
+                    <input type="hidden" name="q" value="{{ request.GET.q }}">
+                    <input type="hidden" name="sort" value="{{ request.GET.sort }}">
+                    <input type="hidden" name="query_type" value="{{ request.GET.query_type }}">
+
+                    <label for="results_per_page">Results per page:</label>
+                    <input type="number" name="results_per_page" id="results_per_page" min="1" value="{{ request.GET.results_per_page|default:'10' }}">
+                    <button type="submit" class="btn">Update</button>
+                </form>
+                <a href="?{{ request.GET.urlencode }}&export=excel">Export to Excel</a>
+                </div>
+                <table border="1">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Date</th>
+                            <th>Content</th>
+                            <th>Language</th>
+                            <th>Certification</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in page_obj %}
+                            <tr>
+                                <td>{{ entry.corpus_id }}</td>
+                                <td>{{ entry.corpus_date }}</td>
+                                <td>{{ entry.content|safe }}</td>
+                                <td>{{ entry.language }}</td>
+                                <td>{{ entry.certification}}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="pagination-and-form">
+                    <ul class="pagination">
+                        {% if page_obj.paginator.num_pages > 1 %}
+                            <!-- Show the first page link -->
+                            <li class="{% if page_obj.number == 1 %}active{% endif %}">
+                                <a href="?page=1&q={{ request.GET.q }}&sort={{ request.GET.sort }}&query_type={{ request.GET.query_type }}">1</a>
+                            </li>
+                            <!-- Show dots if there are pages between the first and the range around the current page -->
+                            {% if page_obj.number > 3 %}
+                                <li><span>...</span></li>
+                            {% endif %}
+                            <!-- Show the page numbers around the current page -->
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if num > page_obj.number|add:'-2' and num < page_obj.number|add:'2' and num != 1 and num != page_obj.paginator.num_pages %}
+                                    <li class="{% if page_obj.number == num %}active{% endif %}">
+                                        <a href="?page={{ num }}&q={{ request.GET.q }}&sort={{ request.GET.sort }}&query_type={{ request.GET.query_type }}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            <!-- Show dots if there are pages between the range around the current page and the last page -->
+                            {% if page_obj.number < page_obj.paginator.num_pages|add:'-2' %}
+                                <li><span>...</span></li>
+                            {% endif %}
+                            <!-- Show the last page link -->
+                            <li class="{% if page_obj.number == page_obj.paginator.num_pages %}active{% endif %}">
+                                <a href="?page={{ page_obj.paginator.num_pages }}&q={{ request.GET.q }}&sort={{ request.GET.sort }}&query_type={{ request.GET.query_type }}">{{ page_obj.paginator.num_pages }}</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                    <form class="footer-form" action="" method="get">
+                    <input type="hidden" name="q" value="{{ request.GET.q }}">
+                    <input type="hidden" name="sort" value="{{ request.GET.sort }}">
+                    <input type="hidden" name="query_type" value="{{ request.GET.query_type }}">
+                    <input type="number" name="page" min="1" max="{{ page_obj.paginator.num_pages }}" placeholder="Go to page...">
+                    <button type="submit" class="btn primary">Go</button>
+                    <button type="button" class="btn second" onclick="clearForm()">Clear</button>
+                  </form>
+                </div>
+            {% endif %}
+        </div>
+        <script src="{% static 'searchapp/scripts.js' %}"></script>
+    </section>
+        </body>
+
+    </html>
